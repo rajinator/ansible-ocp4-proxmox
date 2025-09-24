@@ -1,0 +1,82 @@
+---
+# this role creates base files dir, downloads and sets up the OCP or OKD clients on the bastion and localhost if localhost is linux
+- name: make working dir
+  file:
+    path: "{{ files.bastionDir }}"
+    state: directory
+    mode: '744'
+
+
+- name: make subdirs
+  file:
+    path: "{{ files.bastionDir }}/{{ item }}"
+    state: directory
+    mode: '744'
+  loop:
+  - clients
+  - dependencies
+  - conf
+
+
+- name: Get OC clients, extracts, copy to usr-local-bin
+  block:
+    - name: Fetch from URL
+      get_url:
+        url: "{{ fullUrls.client }}"
+        dest: "{{ files.bastionDir }}/clients/{{ dep.client }}"
+        checksum: "sha256:{{ fullUrls.sha256url }}"
+      register: client_download
+      until: client_download is succeeded
+      retries: 3
+
+
+    - name: Extract clients
+      unarchive:
+        src: "{{ files.bastionDir }}/clients/{{ dep.client }}"
+        dest: "{{ files.bastionDir }}/clients/"
+        creates: "{{ files.bastionDir }}/clients/oc"
+        remote_src: yes
+        list_files: yes
+
+
+    - name: Copy to usr-local-bin
+      copy:
+        src: "{{ files.bastionDir }}/clients/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        remote_src: yes
+        mode: 0777
+      become: yes
+      loop:
+      - oc
+      - kubectl
+        
+
+- name: Get OC Installer, extracts, copy to usr-local-bin
+  block:
+    - name: Fetch from URL
+      get_url:
+        url: "{{ fullUrls.installer }}"
+        dest: "{{ files.bastionDir }}/clients/{{ dep.installer }}"
+        checksum: "sha256:{{ fullUrls.sha256url }}"
+      register: installer_download
+      until: installer_download is succeeded
+      retries: 3
+    
+    - name: Extract installer
+      unarchive:
+        src: "{{ files.bastionDir }}/clients/{{ dep.installer }}"
+        dest: "{{ files.bastionDir }}/clients/"
+        creates: "{{ files.bastionDir }}/clients/openshift-installer"        
+        remote_src: yes
+        list_files: yes
+
+    - name: Copy to usr-local-bin
+      copy:
+        src: "{{ files.bastionDir }}/clients/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        remote_src: yes
+        mode: 0777 
+      become: yes
+      loop:
+      - openshift-install
+

@@ -1,0 +1,79 @@
+---
+# This group of tasks will generate installConfig and copy to the required locations
+- name: Template InstallConfig Base OCP
+  template:
+    src: ocp/install-config.yaml.j2
+    dest: files/install-config.yaml
+  register: install_config_from_tmp
+  when: openshift.dist == "ocp"
+  delegate_to: localhost
+
+- name: Template InstallConfig Base OKD
+  template:
+    src: ocp/install-config-okd.yaml.j2
+    dest: files/install-config.yaml
+  register: install_config_from_tmp
+  when: openshift.dist == "okd"
+  delegate_to: localhost
+
+- name: Check if cluster installconf dir exists
+  stat:
+    path: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/"
+  register: chk_ic_dir
+
+- name: Delete old cluster dir if it exists
+  file:
+    path: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/"
+    state: absent
+  when: chk_ic_dir.stat.exists | bool and fullWipe | bool
+  register: ic_dir_deleted
+
+- name: Copy InstallConfig to conf dir
+  copy:
+    src: files/install-config.yaml
+    dest: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/"
+  when: install_config_from_tmp is changed or ic_dir_deleted is changed
+  register: ic_copied
+
+- name: Generate Manifests
+  command:
+    cmd: "openshift-install create manifests --dir={{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/ --log-level warn"
+    creates: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/manifests"
+  when: ic_copied is changed
+  register: manifests_generated
+
+
+# - name: Make masters unSchedulable
+#   lineinfile:
+#     path: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/manifests/cluster-scheduler-02-config.yml"
+#     regexp: '^  mastersSchedulable: true'
+#     line: '  mastersSchedulable: false'
+#   when: manifests_generated is changed
+
+- name: Generate Ignitions
+  command:
+    cmd: "openshift-install create ignition-configs --dir={{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/ --log-level warn"
+    creates: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/metadata.json"
+  when: manifests_generated is changed
+
+- name: Copy Ignitions to Proxmox node
+  command:
+    cmd: |
+      /usr/bin/bash -c "rsync -vP --update {{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/{{ item }} \
+      {{ ansible_user_id }}@{{ proxmox.node_ip }}:{{ files.proxmoxDir }}/ignitions/{{ openshift.cluster.name }}"
+  # ansible.posix.synchronize:
+    # src: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/{{ item }}"
+    # dest: "{{ ansible_user_id }}@{{ proxmox.node_ip }}/{{ files.proxmoxDir }}/"
+    # rsync_opts:
+      # - -n
+      # - -P
+      # - -u
+      # - -v
+      # - -e "ssh"
+  timeout: 5
+  loop:
+  - bootstrap.ign
+  - master.ign
+  - worker.ign
+  # Delegation so copying is easier or move to another play
+  delegate_to: "{{ groups['bastion'][0] }}"

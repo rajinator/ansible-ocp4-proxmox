@@ -1,0 +1,11 @@
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/bootstrap.ign" >> /etc/pve/qemu-server/110.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/master.ign" >> /etc/pve/qemu-server/111.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/master.ign" >> /etc/pve/qemu-server/112.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/master.ign" >> /etc/pve/qemu-server/113.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/worker.ign" >> /etc/pve/qemu-server/121.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/worker.ign" >> /etc/pve/qemu-server/122.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/worker.ign" >> /etc/pve/qemu-server/123.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/worker.ign" >> /etc/pve/qemu-server/121.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/worker.ign" >> /etc/pve/qemu-server/122.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/worker.ign" >> /etc/pve/qemu-server/123.conf
+echo "args: -fw_cfg name=opt/com.coreos/config,file=/home/ansible/ocp-ansible-proxmox/ignitions/okd4/worker.ign" >> /etc/pve/qemu-server/121.conf

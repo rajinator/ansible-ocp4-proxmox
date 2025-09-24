@@ -1,0 +1,48 @@
+---
+# This role downloads the qcow2 image to the proxmox node for import later in vm templating
+- name: make working dir and subdirs
+  file:
+    path: "{{ files.proxmoxDir }}/{{ item }}"
+    state: directory
+    mode: '744'
+  loop:
+  - osimg
+  - conf
+  - "ignitions/{{ openshift.cluster.name }}"
+
+
+- name: Get qcow2 okd
+  block:
+    - name: Fetch qcow2 xz archive
+      get_url:
+        url: "{{ fullUrls.coreos_qcow2 }}.xz"
+        dest: "{{ files.proxmoxDir }}/osimg/{{ dep.iso }}.xz"
+      register: img_downloaded
+      until: img_downloaded is succeeded
+      retries: 3
+    
+    # Unarchive does not work with xz
+    - name: Extract qcow2
+      command:
+        cmd: "unxz --keep {{ img_downloaded.dest }}"
+        creates: "{{ files.proxmoxDir }}/osimg/{{ dep.iso }}"
+
+  when: openshift.dist == "okd"
+
+- name: Get qcow2 ocp
+  block:
+    - name: Fetch qcow2 gz archive
+      get_url:
+        url: "{{ fullUrls.coreos_qcow2 }}.gz"
+        dest: "{{ files.proxmoxDir }}/osimg/{{ dep.iso }}.gz"
+      register: img_downloaded
+      until: img_downloaded is succeeded
+      retries: 3
+    
+    # Unarchive does not work with just gz either
+    - name: Extract qcow2 gz
+      command:
+        cmd: "gunzip -k {{ img_downloaded.dest }}"
+        creates: "{{ files.proxmoxDir }}/osimg/{{ dep.iso }}"
+
+  when: openshift.dist == "ocp"

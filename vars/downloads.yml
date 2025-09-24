@@ -1,0 +1,37 @@
+---
+downloadPkgs: true
+
+files:
+  bastionDir: "/home/{{ ansible_user_id }}/ocp-ansible-proxmox"
+  proxmoxDir: "/home/{{ ansible_user_id }}/ocp-ansible-proxmox"
+
+
+dep:
+  client_base_url: 
+    ocp: https://mirror.openshift.com/pub/openshift-v4/clients/ocp
+    okd: https://github.com/openshift/okd/releases/download
+  coreos_base_url: 
+    ocp: https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos
+    #okd: https://builds.coreos.fedoraproject.org/prod/streams/stable/builds
+    okd: https://builds.coreos.fedoraproject.org/prod/streams/testing/builds
+  installer: "openshift-install-linux-{{ ocClient_version }}.tar.gz"
+  client: "openshift-client-linux-{{ ocClient_version }}.tar.gz"
+  iso: "fedora-coreos-{{ coreos_version }}-qemu.x86_64.qcow2"
+  #iso: "rhcos-4.10.3-x86_64-qemu.x86_64.qcow2"
+
+
+# disk_image_qcow2: >-
+# {%- if   openshift.dist == 'okd' -%} "{{ dep.coreos_url }}/fedora-coreos_{{ openshift.coreos_version }}-qemu.x86_64.qcow2.gz"
+# {%- endif -%}
+
+fullUrls:
+  client: "{{ dep.client_base_url.okd }}/{{ ocClient_version }}/{{ dep.client }}"
+  installer: "{{ dep.client_base_url.okd }}/{{ ocClient_version }}/{{ dep.installer }}"
+  sha256url: "{{ dep.client_base_url.okd }}/{{ ocClient_version }}/sha256sum.txt" 
+  coreos_qcow2: "{{ dep.coreos_base_url.okd }}/{{ coreos_version }}/x86_64/{{ dep.iso }}"
+
+# fullUrls:
+#   client: "{{ dep.client_base_url.ocp }}/{{ ocClient_version }}/{{ dep.client }}"
+#   installer: "{{ dep.client_base_url.ocp }}/{{ ocClient_version }}/{{ dep.installer }}"
+#   sha256url: "{{ dep.client_base_url.ocp }}/{{ ocClient_version }}/sha256sum.txt" 
+#   coreos_qcow2: "{{ dep.coreos_base_url.ocp }}/{{ openshift.major_version }}/latest/{{ dep.iso }}"

@@ -1,0 +1,56 @@
+---
+# - name: Check if template exists
+#   ansible.builtin.proxmox_kvm:
+#     api_host: "{{ proxmox.api_host }}"
+#     api_user: "{{ proxmox.api_user }}"
+#     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
+#     #api_token_secret: "{{ proxmox_secrets.api_token_secret }}"
+#     api_password: "{{ proxmox_secrets.api_password }}"
+#     name: "{{ vmTemplate.name }}"
+#     node: "{{ proxmox.node }}"
+#     vmid: "{{ vmTemplate.id }}"
+#     state: current
+#   register: template_exists_check
+#   ignore_errors: true
+
+- name: Destroy Template if Exists
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    #api_token_id: "{{ proxmox_secrets.api_token_id }}"
+    #api_token_secret: "{{ proxmox_secrets.api_token_secret }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    name: "{{ vmTemplate.name }}"
+    node: "{{ proxmox.node }}"
+    vmid: "{{ vmTemplate.id }}"
+    state: absent
+  when: fullWipe | bool
+
+
+- name: Create Template VM
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    #api_token_id: "{{ proxmox_secrets.api_token_id }}"
+    #api_token_secret: "{{ proxmox_secrets.api_token_secret }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    name: "{{ vmTemplate.name }}"
+    node: "{{ proxmox.node }}"
+    vmid: "{{ vmTemplate.id }}"
+    net:
+      net0: 'virtio,bridge={{ vmNet.ifName }}'
+    cores: "{{ vmTemplate.cores }}"
+    vcpus: 4
+    memory: "{{ vmTemplate.mem }}"
+    agent: "{{ vmTemplate.agent | default(no) }}"
+    serial:
+      serial0: socket
+    template: true
+  register: template_vm_info
+  # when: template_exists_check is changed
+
+- name: View returned template vm info
+  debug:
+    var: template_vm_info
+  # when: template_vm_info is changed
+    

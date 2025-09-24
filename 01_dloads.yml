@@ -1,0 +1,26 @@
+### Dowloand and setup openshift-clients on bastion and optionally localhost
+- name: download oc clients and installer
+  hosts: bastion
+  roles:
+  - role: dload_clients
+    when: downloadPkgs | bool
+  vars_files:
+    - vars/config.yml
+    - vars/proxmox.yml
+    - vars/vm_info.yml 
+    - vars/secrets.yml
+    - vars/downloads.yml  
+
+
+### Download qcow2 onto proxmox nodes
+- name: download coreos qcow2 into proxmox nodes
+  hosts: proxmoxnodes
+  roles:
+  - role: dload_qcow2
+    when: downloadPkgs | bool
+  vars_files:
+    - vars/config.yml
+    - vars/proxmox.yml
+    - vars/vm_info.yml 
+    - vars/secrets.yml
+    - vars/downloads.yml

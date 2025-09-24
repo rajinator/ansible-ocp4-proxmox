@@ -1,0 +1,73 @@
+---
+# Example VM and network configuration
+# Copy to vm_info.yml and update with your network details
+
+vmTemplate:
+  create: true
+  name: ocptmpl
+  id: 9010
+  cores: 4
+  mem: 16384
+  agent: "yes"
+
+vmNet:
+  ifName: vmbr1
+  router: 10.x.x.1
+  broadcastAddr: 10.x.x.255
+  dnsServer: 192.168.x.x
+  domainName: your-domain.example.com
+  dhcpIfName: eth0
+  dhcpRangeStart: 10.x.x.10
+  dhcpRangeStop: 10.x.x.100
+  dhcpRangeMask: 255.255.x.x
+
+vmStorage: nvme-lvm
+vm_disk_size: 100G
+
+createVMs: true
+
+files:
+  bastionDir: "/home/ansible/ocp-ansible-proxmox"
+  proxmoxDir: "/home/ansible/ocp-ansible-proxmox"
+
+# VM Definitions - Update IPs for your network
+vms:
+  bootstrap:
+    create: true
+    name: bootstrap-d1
+    id: 110
+    cores: 4
+    mem: 16384
+    IP: 10.x.x.10
+    hwaddr: "bc:24:11:22:33:10"
+
+  control:
+    create: true
+    name: control-d1
+    id: 111
+    replicas: 3
+    cores: 4
+    mem: 16384
+    CP1:
+      IP: 10.x.x.11
+      hwaddr: "bc:24:11:22:33:11"
+    CP2:
+      IP: 10.x.x.12
+      hwaddr: "bc:24:11:22:33:12"
+    CP3:
+      IP: 10.x.x.13
+      hwaddr: "bc:24:11:22:33:13"
+
+  compute:
+    create: true
+    name: compute-d1
+    id: 121
+    replicas: 2
+    cores: 8
+    mem: 32768
+    CN1:
+      IP: 10.x.x.21
+      hwaddr: "bc:24:11:22:33:21"
+    CN2:
+      IP: 10.x.x.22
+      hwaddr: "bc:24:11:22:33:22"

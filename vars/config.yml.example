@@ -1,0 +1,63 @@
+---
+# Example configuration file showing all available options
+# Copy to config.yml and customize for your environment
+
+# THIS KEY VARIABLE WILL RUN ALL STEPS IN THE PLAYBOOK AND DELETE ALL OLD STUFF
+fullWipe: true
+
+openshift:
+  # Distribution: "okd" or "ocp" 
+  dist: "okd"
+  major_version: '4.10'
+  minor_version: '0-0.okd-2022-03-07-131213'
+  
+  cluster:
+    baseDomain: your-domain.example.com
+    name: okd4
+    # Optional: Override default replica counts
+    master_replicas: 3
+    worker_replicas: 0
+  
+  networking:
+    type: OVNKubernetes
+    machineCIDR: 10.x.x.0/24
+    clusterNetCIDR: 10.100.0.0/16
+    clusterPrefix: 23
+    serviceNetCIDR: 10.101.0.0/16
+  
+  # Optional: Custom registry mirrors for disconnected installations
+  registry:
+    mirrors:
+      - mirror_registry: "nexus-local.homelab.example.com"
+        path: "okd4/okd"  # or "ocp4/openshift" for OpenShift
+        source: "quay.io/openshift/okd"
+      - mirror_registry: "nexus-local.homelab.example.com" 
+        path: "okd4/okd"
+        source: "quay.io/openshift/okd-content"
+  
+  # Optional: Additional trust bundle for custom CAs
+  # additionalTrustBundle: |
+  #   -----BEGIN CERTIFICATE-----
+  #   Your custom CA certificate here
+  #   -----END CERTIFICATE-----
+
+# CoreOS version for template creation
+coreos_version: 35.20220116.2.0
+
+# Computed client version
+ocClient_version: '{{ openshift.major_version }}.{{ openshift.minor_version }}'
+
+# DNS configuration
+dns:
+  zoneDir: /var/lib/bind
+  fwdFile: your-domain.example.com
+  revFile: 10.x.x.rev
+
+# DHCP configuration  
+dhcp:
+  confDir: /etc/dhcp/conf.d
+
+# File locations (usually don't need to change)
+files:
+  bastionDir: "/home/ansible/ocp-ansible-proxmox"
+  proxmoxDir: "/home/ansible/ocp-ansible-proxmox"

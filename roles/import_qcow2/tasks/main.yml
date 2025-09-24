@@ -1,0 +1,30 @@
+---
+### This Role imports the qcow2 into the proxmox node
+# - name: Print downloaded iso facts
+#   debug:
+#     var: xzimg_extracted
+
+- name: Create importdisk script from template
+  template:
+    src: scripts/import_qcow2_disk.sh.j2
+    dest: files/import_qcow2_disk.sh
+  delegate_to: localhost
+  register: qcow2_import_script
+
+- name: Copy template script to proxmox node
+  copy:
+    src: files/import_qcow2_disk.sh
+    dest: "/home/{{ ansible_user_id }}/import_qcow2_disk.sh"
+    mode: 0764
+  when: qcow2_import_script is changed
+
+- name: Import CoreOS Qcow2 disk
+  shell:
+    cmd: /usr/bin/bash -c "/home/{{ ansible_user_id }}/import_qcow2_disk.sh 2>&1 | tee import_disk_task_output.log"
+  become: yes
+  register: disk_import_log
+
+- name: Show disk import log
+  debug:
+    var: disk_import_log
+  when: disk_import_log is changed

@@ -1,0 +1,5 @@
+---
+# This Role will create the ignition config dir on bastion, then copy ignitions to proxmox for args
+
+# Create install config and ignitions
+- include_tasks: 01_install_config.yml

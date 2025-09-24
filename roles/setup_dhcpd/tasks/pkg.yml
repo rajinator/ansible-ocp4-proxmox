@@ -1,0 +1,11 @@
+- name: Ensure dhcpd package Exists
+  ansible.builtin.package:
+    name: dhcpd
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure isc-dhcp-server Exists
+  ansible.builtin.package:
+    name: isc-dhcp-server
+    state: present
+  when: ansible_os_family == "Debian"

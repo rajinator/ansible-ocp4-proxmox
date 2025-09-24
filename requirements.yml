@@ -1,0 +1,9 @@
+---
+collections:
+  - community.general
+  - ansible.posix
+  - containers.podman
+  - community.crypto
+  - community.proxmox
+  - kubernetes.core
+  #- community.libvirt

@@ -1,0 +1,4 @@
+proxmoxer
+requests
+kubernetes
+pyyaml

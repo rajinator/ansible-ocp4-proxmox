@@ -1,0 +1,11 @@
+### Create VMs from template
+- name: Create VMs from template
+  hosts: bastion
+  roles:
+  - role: create_vms
+  vars_files:
+    - vars/config.yml
+    - vars/proxmox.yml
+    - vars/vm_info.yml 
+    - vars/secrets.yml
+    - vars/downloads.yml

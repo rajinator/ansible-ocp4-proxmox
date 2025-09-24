@@ -1,0 +1,82 @@
+---
+- name: Destroy Bootstrap VM if Exists
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    #api_token_id: "{{ proxmox_secrets.api_token_id }}"
+    #api_token_secret: "{{ proxmox_secrets.api_token_secret }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    name: "{{ item.name }}"
+    node: "{{ proxmox.node }}"
+    vmid: "{{ item.id }}"
+    state: absent
+  when: fullWipe | bool
+  with_items:
+   - "{{ nodeNetworkInfo.bootstrap }}"
+
+
+# Create Bootstrap VM
+- name: Create Bootstrap VM
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    #api_token_id: "{{ proxmox_secrets.api_token_id }}"
+    #api_token_secret: "{{ proxmox_secrets.api_token_secret }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    name: "{{ item.name }}"
+    node: "{{ proxmox.node }}"
+    vmid: "{{ vmTemplate.id }}"
+    newid: "{{ item.id }}"
+    clone: "{{ vmTemplate.name }}"
+    # Cannot do link clones with scsi0
+    # full: no
+    net:
+      net0: 'virtio={{ item.MAC }},bridge={{ vmNet.ifName }}'
+    cores: "{{ bootstrap.cores }}"
+    vcpus: 4
+    memory: "{{ bootstrap.mem }}"
+    agent: yes
+    serial:
+      serial0: socket
+    state: present
+    timeout: 300
+    args: "-fw_cfg name=opt/com.coreos/config,file={{ files.proxmoxDir }}/ignitions/{{ openshift.cluster.name }}/bootstrap.ign"
+  register: bootstrap_vm_info
+  with_items:
+   - "{{ nodeNetworkInfo.bootstrap }}"
+
+##
+- name: Create NIC net0 targeting the vm by id
+  community.general.proxmox_nic:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    #api_token_id: "{{ proxmox_secrets.api_token_id }}"
+    #api_token_secret: "{{ proxmox_secrets.api_token_secret }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    vmid: "{{ item.id }}"
+    interface: net0
+    bridge: "{{ vmNet.ifName }}"
+    mac: "{{ item.MAC }}"
+  register: bootstrap_nic_set
+  with_items:
+   - "{{ nodeNetworkInfo.bootstrap }}"
+
+# - name: View returned Bootstrap vm creation info
+#   debug:
+#     var: bootstrap_vm_info
+
+- name: resize bootstrap disks
+  uri:
+      url: "https://{{ proxmox.api_host }}:8006/api2/json/nodes/{{ proxmox.node }}/qemu/{{ item.id }}/resize"
+      method: PUT
+      headers:
+        Cookie: "PVEAuthCookie={{ auth.json.data.ticket }}"
+        CSRFPreventionToken: "{{ auth.json.data.CSRFPreventionToken }}"
+      body_format: form-urlencoded
+      body:
+        disk: scsi0
+        size: "{{ vm_disk_size }}"
+      validate_certs: no
+  with_items:
+   - "{{ nodeNetworkInfo.bootstrap }}"
+

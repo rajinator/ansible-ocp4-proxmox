@@ -1,0 +1,25 @@
+### Download qcow2 onto proxmox nodes
+- name: Create VM for templating
+  hosts: bastion
+  roles:
+  - role: vm_templ
+    # when: vmTemplate.create | bool
+  vars_files:
+    - vars/config.yml
+    - vars/proxmox.yml
+    - vars/vm_info.yml 
+    - vars/secrets.yml
+    - vars/downloads.yml
+
+### Import qcow2 onto created VM for template
+- name: Import QCOW2 into template vm
+  hosts: proxmoxnodes
+  roles:
+  - role: import_qcow2
+    when: fullWipe | bool
+  vars_files:
+    - vars/config.yml
+    - vars/proxmox.yml
+    - vars/vm_info.yml 
+    - vars/secrets.yml
+    - vars/downloads.yml

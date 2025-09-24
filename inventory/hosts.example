@@ -1,0 +1,26 @@
+# Example inventory file - copy to hosts and update with your actual IPs
+# Commands:
+#   cp inventory/hosts.example inventory/hosts
+#   # Edit inventory/hosts with your actual IP addresses and hostnames
+
+# Add ansible user with passwordless sudo on all the following hosts
+
+[bastion]
+192.168.x.x  host_name=your-bastion-hostname
+
+# Use the following 2 lines on debian type distros
+[bastion:vars]
+ansible_python_interpreter=/usr/bin/python3
+
+# BIND DNS compatibility for now
+[dnsservers]
+192.168.x.x  host_name=your-dns-server
+
+[dnsservers:vars]
+ansible_python_interpreter=/usr/bin/python3
+
+[proxmoxnodes]
+192.168.x.x  host_name=your-proxmox-node
+
+[proxmoxnodes:vars]
+ansible_python_interpreter=/usr/bin/python3

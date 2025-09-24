@@ -1,0 +1,12 @@
+---
+- name: Download files
+  import_playbook: 01_dloads.yml
+
+- name: Generate PreInstall Artifacts
+  import_playbook: 02_ocp_preinstall.yml
+
+- name: Create VM template
+  import_playbook: 03_vm_template.yml
+
+- name: Create VMs
+  import_playbook: 04_create_vms.yml

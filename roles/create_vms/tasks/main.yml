@@ -1,0 +1,21 @@
+---
+# Get api auth token for resizing disks
+- name: authentication
+  uri:
+    url: "https://{{ proxmox.api_host }}:8006/api2/json/access/ticket"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      username: "{{ proxmox.api_user }}"
+      password: "{{ proxmox_secrets.api_password }}"
+    validate_certs: no
+  register: auth
+
+# Create bootstrap VM
+- include_tasks: 01_bootstrap.yml
+
+# Create ControlPlane VMs
+- include_tasks: 02_control.yml
+
+# Create Compute VMs
+- include_tasks: 03_compute.yml

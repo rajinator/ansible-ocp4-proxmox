@@ -1,0 +1,49 @@
+---
+# Generated install-config.yaml for {{ openshift.dist | upper }} {{ openshift.major_version }}.{{ openshift.minor_version }}
+# This file is generated from templates/ocp/install-config-okd.yaml.j2
+# DO NOT EDIT DIRECTLY - Changes will be overwritten!
+
+apiVersion: v1
+baseDomain: {{ openshift.cluster.baseDomain }}
+compute:
+- hyperthreading: Enabled
+  name: worker
+  replicas: {{ openshift.cluster.worker_replicas | default(0) }}
+controlPlane:
+  hyperthreading: Enabled
+  name: master
+  replicas: {{ openshift.cluster.master_replicas | default(3) }}
+metadata:
+  name: {{ openshift.cluster.name }}
+networking:
+  networkType: {{ openshift.networking.type }}
+  machineCIDR: {{ openshift.networking.machineCIDR }}
+  clusterNetworks:
+  - cidr: {{ openshift.networking.clusterNetCIDR }}
+    hostPrefix: {{ openshift.networking.clusterPrefix }}
+  serviceNetwork:
+  - {{ openshift.networking.serviceNetCIDR }}
+platform:
+  none: {}
+pullSecret: '{{ openshift_secrets.PullSecret }}'
+sshKey: '{{ openshift_secrets.ssh_key }}'
+{% if openshift.registry is defined and openshift.registry.mirrors is defined %}
+imageContentSources:
+{% for mirror in openshift.registry.mirrors %}
+- mirrors:
+  - {{ mirror.mirror_registry }}/{{ mirror.path | default('okd4/okd') }}
+  source: {{ mirror.source }}
+{% endfor %}
+# see example below Default image content sources for disconnected OKD installations
+#imageContentSources:
+#- mirrors:
+#  - nexus-local.apps.example.com/okd4/okd
+#  source: quay.io/openshift/okd
+#- mirrors:
+#  - nexus-local.apps.example.com/okd4/okd
+#  source: quay.io/openshift/okd-content
+{% endif %}
+{% if openshift.additionalTrustBundle is defined %}
+additionalTrustBundle: |
+{{ openshift.additionalTrustBundle | indent(2, true) }}
+{% endif %}

@@ -1,0 +1,9 @@
+---
+# Example Proxmox configuration
+# Copy to proxmox.yml and update with your actual Proxmox details
+
+proxmox:
+  api_host: "192.168.x.x"
+  api_user: "root@pam"
+  node: "your-proxmox-node"
+  node_ip: "192.168.x.x"

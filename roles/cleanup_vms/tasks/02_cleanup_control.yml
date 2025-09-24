@@ -1,0 +1,15 @@
+## This will destroy all control plane VMs
+- name: Destroy Control Plane VMs if they exist
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    #api_token_id: "{{ proxmox_secrets.api_token_id }}"
+    #api_token_secret: "{{ proxmox_secrets.api_token_secret }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    name: "{{ item.name }}"
+    node: "{{ proxmox.node }}"
+    vmid: "{{ item.id }}"
+    state: absent
+  when: cleanupFull | bool
+  with_items: 
+   - "{{ nodeNetworkInfo.controlplanes }}"

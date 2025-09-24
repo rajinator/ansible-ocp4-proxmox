@@ -1,0 +1,62 @@
+# Ansible runtime files
+.ansible/
+*.retry
+
+# Sensitive configuration files (keep example files)
+vars/secrets.yml
+vars/secrets.yaml
+vars/vault.yml
+vars/vault.yaml
+inventory/hosts
+
+# Configuration files with environment-specific data
+vars/config.yml
+vars/proxmox.yml
+vars/vm_info.yml
+
+# SSH keys and certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+id_ecdsa*
+
+# Generated OpenShift files
+auth/
+ignitions/
+*.ign
+files/* # Generated from templates
+
+# Backup files
+*.backup
+*.bak
+*~
+.#*
+#*#
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+ansible.log
+
+# Temporary files
+tmp/
+temp/
