@@ -2,6 +2,55 @@
 
 This repository contains Ansible playbooks to automate the deployment of OpenShift/OKD clusters on Proxmox VE infrastructure.
 
+## Summary
+
+### What You Should Have
+Before starting this automation, ensure you have:
+
+**Infrastructure Requirements:**
+- A working Proxmox VE 6.x+ hypervisor with sufficient resources
+- At least 64GB RAM and 500GB storage available for the cluster
+- A dedicated bastion/helper VM (8GB RAM, 4 vCPU, 100GB disk minimum)
+- Network subnet with DHCP range available for cluster VMs
+
+**Access Requirements:**
+- Root or administrative access to your Proxmox host
+- SSH access to your bastion/helper VM
+- Network connectivity between all components
+
+**Knowledge Requirements:**
+- Basic understanding of Ansible playbooks
+- Familiarity with OpenShift/OKD concepts
+- Basic Linux system administration skills
+- Understanding of virtualization and networking concepts
+
+### What You Will Get
+Upon successful completion, you will have:
+
+**A Fully Operational OpenShift/OKD Cluster:**
+- 3 control plane nodes (highly available master nodes)
+- Configurable number of worker nodes (default: 2, can be scaled)
+- Bootstrap node automatically provisioned and cleaned up
+- All VMs running CoreOS/RHCOS with proper ignition configs
+
+**Complete Infrastructure Services:**
+- DNS server (BIND) with proper cluster records
+- DHCP server with reserved IP assignments for all cluster nodes
+- Load balancer (HAProxy) for API and ingress traffic
+- All services configured for high availability
+
+**Ready-to-Use Cluster:**
+- OpenShift/OKD web console accessible via browser
+- kubectl/oc command-line access configured
+- All cluster operators installed and operational
+- Ready for application deployments and day-2 operations
+
+**Automation Benefits:**
+- Repeatable, idempotent deployments
+- Consistent cluster configurations
+- Automated cleanup and rollback capabilities
+- Infrastructure as code approach for cluster lifecycle management
+
 ## Security Notice
 
 **This repository has been secured and uses Ansible Vault for sensitive data protection.**
@@ -64,6 +113,30 @@ This automation handles the complete OpenShift/OKD deployment pipeline on Proxmo
 3. **VM Deployment** - Clone VMs for bootstrap, control plane, and compute nodes
 4. **Network Configuration** - DNS, DHCP, and load balancer setup
 5. **Cluster Installation** - Bootstrap and complete cluster deployment
+
+### Technical Details: Ignition Configuration Delivery
+
+This automation uses QEMU's [Firmware Configuration (fw_cfg) device](https://www.qemu.org/docs/master/specs/fw_cfg.html) to deliver ignition files to RHCOS VMs. When each VM is created, the playbooks automatically configure the following QEMU argument:
+
+```
+-fw_cfg name=opt/com.coreos/config,file=/path/to/ignition/file.ign
+```
+
+**How it Works:**
+
+1. **Ignition File Generation** - OpenShift installer creates ignition files (bootstrap.ign, master.ign, worker.ign)
+2. **fw_cfg Configuration** - Each VM gets the appropriate ignition file via QEMU's firmware configuration interface
+3. **RHCOS Boot Process** - During boot, RHCOS automatically reads the ignition configuration from fw_cfg
+4. **System Configuration** - RHCOS applies the ignition config to set up networking, certificates, and services
+
+**Per VM Type:**
+- **Bootstrap VM**: Uses `bootstrap.ign` for temporary cluster initialization
+- **Control Plane VMs**: Use `master.ign` for etcd and control plane configuration  
+- **Worker VMs**: Use `worker.ign` for compute node configuration
+
+This method eliminates the need for external configuration servers or manual intervention during the boot process. The ignition files contain all necessary configuration including network settings, certificates, and systemd units required for the OpenShift cluster.
+
+**Reference**: [Proxmox ignition file howto](https://forum.proxmox.com/threads/howto-startup-vm-using-an-ignition-file.63782/)
 
 ## Prerequisites
 
