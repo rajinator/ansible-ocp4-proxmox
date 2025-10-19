@@ -10,13 +10,15 @@
       - bind-utils
     state: present
 
-- name: Ensure BIND configuration directory exists
+- name: Ensure BIND zone directory exists
   ansible.builtin.file:
     path: "{{ dns.zoneDir }}"
     state: directory
     owner: named
     group: named
     mode: '0755'
+
+# Note: /var/named/data and /var/named/dynamic are created by BIND package by default
 
 - name: Deploy BIND main configuration
   ansible.builtin.template:

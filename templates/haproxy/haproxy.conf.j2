@@ -117,7 +117,7 @@ backend http-ingress-backend
     mode tcp
     balance roundrobin
     
-{% if nodeNetworkInfo.computes | length > 0 %}
+{% if nodeNetworkInfo.computes is defined and nodeNetworkInfo.computes | length > 0 %}
     # Worker nodes (dedicated workers cluster)
 {% for node in nodeNetworkInfo.computes %}
     server {{ node.name }} {{ node.IP }}:80 check
@@ -145,7 +145,7 @@ backend https-ingress-backend
     balance roundrobin
     option ssl-hello-chk
     
-{% if nodeNetworkInfo.computes | length > 0 %}
+{% if nodeNetworkInfo.computes is defined and nodeNetworkInfo.computes | length > 0 %}
     # Worker nodes (dedicated workers cluster)
 {% for node in nodeNetworkInfo.computes %}
     server {{ node.name }} {{ node.IP }}:443 check

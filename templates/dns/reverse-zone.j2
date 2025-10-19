@@ -1,7 +1,7 @@
 $TTL 5M     ; 5 minutes - short TTL for homelab experiments
 {% set octets = openshift.networking.machineCIDR.split('.') %}
 @   IN  SOA ns1.{{ openshift.cluster.baseDomain }}. root.{{ openshift.cluster.baseDomain }}. (
-{% set serial = ansible_date_time.iso8601_basic_short %}
+{% set serial = ansible_date_time.date | replace('-', '') + '01' %}
             {{ serial }}  ; serial ({{ ansible_date_time.date }})
             1H          ; refresh
             15M         ; retry

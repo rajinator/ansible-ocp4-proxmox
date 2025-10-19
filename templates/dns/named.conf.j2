@@ -12,7 +12,6 @@ options {
     
     recursion yes;
     
-    dnssec-enable yes;
     dnssec-validation yes;
     
     managed-keys-directory "{{ dns.zoneDir }}/dynamic";
@@ -40,14 +39,7 @@ logging {
     };
 };
 
-# Forward zone for cluster domain
-zone "{{ openshift.cluster.name }}.{{ openshift.cluster.baseDomain }}" IN {
-    type master;
-    file "{{ dns.fwdFile }}";
-    allow-update { none; };
-};
-
-# Forward zone for base domain
+# Forward zone for base domain (includes cluster records)
 zone "{{ openshift.cluster.baseDomain }}" IN {
     type master;
     file "{{ dns.fwdFile }}";
@@ -62,6 +54,6 @@ zone "{{ octets[2] }}.{{ octets[1] }}.{{ octets[0] }}.in-addr.arpa" IN {
     allow-update { none; };
 };
 
-include "/etc/named.rfc1912.zones";
+# OpenShift-specific zones only - not including default RFC 1912 zones
 include "/etc/named.root.key";
 
