@@ -51,9 +51,9 @@ Upon successful completion, you will have:
 - Automated cleanup and rollback capabilities
 - Infrastructure as code approach for cluster lifecycle management
 
-## Security Notice
+## Security Notes
 
-**This repository has been secured and uses Ansible Vault for sensitive data protection.**
+**This repository uses Ansible Vault for sensitive data protection.**
 
 Before using this repository:
 1. Read the [SECURITY.md](SECURITY.md) file carefully
