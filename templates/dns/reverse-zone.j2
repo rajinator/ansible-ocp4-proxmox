@@ -1,0 +1,38 @@
+$TTL 5M     ; 5 minutes - short TTL for homelab experiments
+{% set octets = openshift.networking.machineCIDR.split('.') %}
+@   IN  SOA ns1.{{ openshift.cluster.baseDomain }}. root.{{ openshift.cluster.baseDomain }}. (
+{% set serial = ansible_date_time.iso8601_basic_short %}
+            {{ serial }}  ; serial ({{ ansible_date_time.date }})
+            1H          ; refresh
+            15M         ; retry
+            1D          ; expiry
+            5M )        ; minimum - match TTL for quick updates
+
+    IN  NS  ns1.{{ openshift.cluster.baseDomain }}.
+
+; PTR Records
+
+; Bastion host
+{% set bastion_octets = ansible_default_ipv4.address.split('.') %}
+{{ bastion_octets[3] }}    IN  PTR bastion.{{ openshift.cluster.baseDomain }}.
+
+; Bootstrap node
+{% for node in nodeNetworkInfo.bootstrap %}
+{% set node_octets = node.IP.split('.') %}
+{{ node_octets[3] }}    IN  PTR {{ node.name }}.{{ openshift.cluster.name }}.{{ openshift.cluster.baseDomain }}.
+{% endfor %}
+
+; Control plane nodes
+{% for node in nodeNetworkInfo.controlplanes %}
+{% set node_octets = node.IP.split('.') %}
+{{ node_octets[3] }}    IN  PTR {{ node.name }}.{{ openshift.cluster.name }}.{{ openshift.cluster.baseDomain }}.
+{% endfor %}
+
+{% if nodeNetworkInfo.computes is defined and nodeNetworkInfo.computes | length > 0 %}
+; Compute/Worker nodes
+{% for node in nodeNetworkInfo.computes %}
+{% set node_octets = node.IP.split('.') %}
+{{ node_octets[3] }}    IN  PTR {{ node.name }}.{{ openshift.cluster.name }}.{{ openshift.cluster.baseDomain }}.
+{% endfor %}
+{% endif %}
+
