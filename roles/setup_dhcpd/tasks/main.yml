@@ -1,0 +1,57 @@
+---
+# DHCP Server Setup Tasks
+# Assumes RedHat family OS (Fedora/RHEL/CentOS)
+
+- name: Include package installation tasks
+  ansible.builtin.include_tasks: pkg.yml
+
+- name: Ensure DHCP configuration directory exists
+  ansible.builtin.file:
+    path: "{{ dhcp.confDir }}"
+    state: directory
+    mode: '0755'
+  when: dhcp.confDir is defined
+
+- name: Deploy DHCP cluster configuration
+  ansible.builtin.template:
+    src: dhcpd-cluster.conf.j2
+    dest: "{{ dhcp.confDir }}/dhcpd-cluster.conf"
+    mode: '0644'
+    validate: 'dhcpd -t -cf %s'
+  notify: Restart dhcpd
+  when: dhcp.confDir is defined
+
+- name: Deploy DHCP cluster configuration (alternative location)
+  ansible.builtin.template:
+    src: dhcpd-cluster.conf.j2
+    dest: /etc/dhcp/dhcpd.conf
+    mode: '0644'
+    validate: 'dhcpd -t -cf %s'
+  notify: Restart dhcpd
+  when: dhcp.confDir is not defined
+
+- name: Configure firewall for DHCP
+  ansible.posix.firewalld:
+    service: dhcp
+    permanent: yes
+    state: enabled
+    immediate: yes
+  ignore_errors: yes
+
+- name: Enable and start DHCP service
+  ansible.builtin.systemd:
+    name: dhcpd
+    enabled: yes
+    state: started
+
+- name: Display DHCP configuration summary
+  ansible.builtin.debug:
+    msg: |
+      DHCP server configured for OpenShift cluster
+      Configuration file: {{ dhcp.confDir }}/dhcpd-cluster.conf
+      Network: {{ openshift.networking.machineCIDR }}
+      Bootstrap nodes: {{ nodeNetworkInfo.bootstrap | length }}
+      Control plane nodes: {{ nodeNetworkInfo.controlplanes | length }}
+      Compute nodes: {{ nodeNetworkInfo.computes | default([]) | length }}
+      Total nodes configured: {{ nodeNetworkInfo.bootstrap | length + nodeNetworkInfo.controlplanes | length + (nodeNetworkInfo.computes | default([]) | length) }}
+

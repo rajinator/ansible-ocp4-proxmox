@@ -1,11 +1,8 @@
-- name: Ensure dhcpd package Exists
-  ansible.builtin.package:
-    name: dhcpd
-    state: present
-  when: ansible_os_family == "RedHat"
+---
+# DHCP Package Installation
+# Assumes RedHat family OS (Fedora/RHEL/CentOS)
 
-- name: Ensure isc-dhcp-server Exists
+- name: Ensure dhcpd package exists
   ansible.builtin.package:
-    name: isc-dhcp-server
+    name: dhcp-server
     state: present
-  when: ansible_os_family == "Debian"

@@ -1,0 +1,78 @@
+---
+# DNS Configuration Tasks
+# These tasks are included by 00_bastion_services.yml
+# Assumes RedHat family OS (Fedora/RHEL/CentOS)
+
+- name: Install BIND DNS server
+  ansible.builtin.package:
+    name:
+      - bind
+      - bind-utils
+    state: present
+
+- name: Ensure BIND configuration directory exists
+  ansible.builtin.file:
+    path: "{{ dns.zoneDir }}"
+    state: directory
+    owner: named
+    group: named
+    mode: '0755'
+
+- name: Deploy BIND main configuration
+  ansible.builtin.template:
+    src: templates/dns/named.conf.j2
+    dest: /etc/named.conf
+    owner: root
+    group: named
+    mode: '0644'
+    validate: "named-checkconf %s"
+  notify: restart named
+
+- name: Deploy forward zone file
+  ansible.builtin.template:
+    src: templates/dns/forward-zone.j2
+    dest: "{{ dns.zoneDir }}/{{ dns.fwdFile }}"
+    owner: named
+    group: named
+    mode: '0644'
+  notify: restart named
+
+- name: Deploy reverse zone file
+  ansible.builtin.template:
+    src: templates/dns/reverse-zone.j2
+    dest: "{{ dns.zoneDir }}/{{ dns.revFile }}"
+    owner: named
+    group: named
+    mode: '0644'
+  notify: restart named
+
+- name: Configure firewall for DNS
+  ansible.posix.firewalld:
+    service: dns
+    permanent: yes
+    state: enabled
+    immediate: yes
+  ignore_errors: yes
+
+- name: Enable and start BIND service
+  ansible.builtin.systemd:
+    name: named
+    state: started
+    enabled: yes
+
+- name: Wait for DNS service to be ready
+  ansible.builtin.wait_for:
+    port: 53
+    delay: 2
+    timeout: 30
+
+- name: Test DNS resolution for API endpoint
+  ansible.builtin.command: "dig @localhost api.{{ openshift.cluster.name }}.{{ openshift.cluster.baseDomain }} +short"
+  register: dns_test
+  changed_when: false
+  failed_when: dns_test.stdout == ""
+
+- name: Display DNS test results
+  ansible.builtin.debug:
+    msg: "DNS resolution test: api.{{ openshift.cluster.name }}.{{ openshift.cluster.baseDomain }} resolves to {{ dns_test.stdout }}"
+

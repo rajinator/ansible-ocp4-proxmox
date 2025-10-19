@@ -1,0 +1,60 @@
+---
+# Bastion Services Playbook
+# This playbook sets up all required services on the bastion host:
+# - DNS (BIND)
+# - DHCP
+# - HAProxy (Load Balancer)
+# - OpenShift/OKD clients (handled by 01_dloads.yml)
+
+- name: Setup Bastion Host Services
+  hosts: bastion
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - vars/config.yml
+    - vars/vm_info.yml
+    - vars/secrets.yml
+  
+  handlers:
+    - name: restart named
+      ansible.builtin.service:
+        name: named
+        state: restarted
+    
+    - name: reload named
+      ansible.builtin.service:
+        name: named
+        state: reloaded
+  
+  tasks:
+    - name: Include DNS configuration
+      ansible.builtin.include_tasks: tasks/dns_config.yml
+    
+    - name: Include DHCP setup role
+      ansible.builtin.include_role:
+        name: setup_dhcpd
+    
+    - name: Include Load Balancer setup role
+      ansible.builtin.include_role:
+        name: setup_lb
+    
+    - name: Ensure all services are enabled and started
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - named
+        - dhcpd
+        - haproxy
+      
+    - name: Display service status
+      ansible.builtin.debug:
+        msg: |
+          Bastion services configured successfully:
+          - DNS (BIND) listening on port 53
+          - DHCP server configured for {{ openshift.networking.machineCIDR }}
+          - HAProxy load balancer listening on ports 6443, 22623, 80, 443
+          - Stats available at http://{{ ansible_default_ipv4.address }}:9000/stats
+

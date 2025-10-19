@@ -52,6 +52,14 @@ dns:
   zoneDir: /var/lib/bind
   fwdFile: your-domain.example.com
   revFile: 10.x.x.rev
+  # Optional: Upstream DNS forwarders for non-cluster queries
+  # Defaults to Google DNS (8.8.8.8, 8.8.4.4) if not specified
+  forwarders:
+    - 8.8.8.8
+    - 8.8.4.4
+    # Or use your own DNS servers:
+    # - 192.168.1.1
+    # - 1.1.1.1
 
 # DHCP configuration  
 dhcp:

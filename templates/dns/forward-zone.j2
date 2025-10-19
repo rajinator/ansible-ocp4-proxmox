@@ -1,0 +1,48 @@
+$TTL 5M     ; 5 minutes - short TTL for homelab experiments
+@   IN  SOA ns1.{{ openshift.cluster.baseDomain }}. root.{{ openshift.cluster.baseDomain }}. (
+{% set serial = ansible_date_time.iso8601_basic_short %}
+            {{ serial }}  ; serial ({{ ansible_date_time.date }})
+            1H          ; refresh
+            15M         ; retry
+            1D          ; expiry
+            5M )        ; minimum - match TTL for quick updates
+
+    IN  NS  ns1.{{ openshift.cluster.baseDomain }}.
+
+; DNS Server
+ns1                     IN  A   {{ ansible_default_ipv4.address }}
+
+; Bastion host
+bastion                 IN  A   {{ ansible_default_ipv4.address }}
+bastion.{{ openshift.cluster.name }}    IN  A   {{ ansible_default_ipv4.address }}
+
+; OpenShift API endpoints (load balanced through HAProxy on bastion)
+api.{{ openshift.cluster.name }}          IN  A   {{ ansible_default_ipv4.address }}
+api-int.{{ openshift.cluster.name }}      IN  A   {{ ansible_default_ipv4.address }}
+
+; OpenShift application wildcard (load balanced through HAProxy on bastion)
+*.apps.{{ openshift.cluster.name }}       IN  A   {{ ansible_default_ipv4.address }}
+
+; Bootstrap node
+{% for node in nodeNetworkInfo.bootstrap %}
+{{ node.name }}.{{ openshift.cluster.name }}    IN  A   {{ node.IP }}
+{% endfor %}
+
+; Control plane nodes
+{% for node in nodeNetworkInfo.controlplanes %}
+{{ node.name }}.{{ openshift.cluster.name }}    IN  A   {{ node.IP }}
+etcd-{{ loop.index0 }}.{{ openshift.cluster.name }}    IN  A   {{ node.IP }}
+{% endfor %}
+
+{% if nodeNetworkInfo.computes is defined and nodeNetworkInfo.computes | length > 0 %}
+; Compute/Worker nodes
+{% for node in nodeNetworkInfo.computes %}
+{{ node.name }}.{{ openshift.cluster.name }}    IN  A   {{ node.IP }}
+{% endfor %}
+{% endif %}
+
+; etcd SRV records for cluster discovery
+{% for node in nodeNetworkInfo.controlplanes %}
+_etcd-server-ssl._tcp.{{ openshift.cluster.name }}  IN  SRV 0 10 2380 etcd-{{ loop.index0 }}.{{ openshift.cluster.name }}.
+{% endfor %}
+

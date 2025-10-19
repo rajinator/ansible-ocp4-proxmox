@@ -1,7 +1,0 @@
-# TO DO - Add bastion services playbook
-
-# 1. Install DHCP server
-# 2. Install HAProxy
-# 3. Install DNS server
-# 4. Install OpenShift/OKD clients
-# 5. Install OpenShift/OKD installer

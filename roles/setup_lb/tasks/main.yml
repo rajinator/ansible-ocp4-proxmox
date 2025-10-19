@@ -1,0 +1,76 @@
+---
+# HAProxy Load Balancer Setup Tasks
+# Assumes RedHat family OS (Fedora/RHEL/CentOS)
+
+- name: Install HAProxy
+  ansible.builtin.package:
+    name: haproxy
+    state: present
+
+- name: Deploy HAProxy configuration
+  ansible.builtin.template:
+    src: haproxy.conf.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: '0644'
+    validate: 'haproxy -c -f %s'
+  notify: restart haproxy
+
+- name: Configure SELinux for HAProxy to bind to custom ports
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: yes
+    persistent: yes
+  when: ansible_selinux.status == "enabled"
+  ignore_errors: yes
+
+- name: Configure firewall for HAProxy
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop:
+    - 6443/tcp    # Kubernetes API
+    - 22623/tcp   # Machine Config
+    - 80/tcp      # HTTP Ingress
+    - 443/tcp     # HTTPS Ingress
+    - 9000/tcp    # HAProxy Stats
+  ignore_errors: yes
+
+- name: Enable and start HAProxy service
+  ansible.builtin.systemd:
+    name: haproxy
+    enabled: yes
+    state: started
+
+- name: Wait for HAProxy to be ready
+  ansible.builtin.wait_for:
+    port: 9000
+    delay: 2
+    timeout: 30
+
+- name: Display HAProxy configuration summary
+  ansible.builtin.debug:
+    msg: |
+      HAProxy load balancer configured for OpenShift cluster
+      Configuration file: /etc/haproxy/haproxy.cfg
+      
+      Listening ports:
+      - 6443: Kubernetes API Server
+      - 22623: Machine Config Server
+      - 80: HTTP Ingress
+      - 443: HTTPS Ingress
+      - 9000: HAProxy Statistics
+      
+      Stats URL: http://{{ ansible_default_ipv4.address }}:9000/stats
+      
+      Backend servers:
+      - Bootstrap: {{ nodeNetworkInfo.bootstrap | length }} node(s)
+      - Control Plane: {{ nodeNetworkInfo.controlplanes | length }} node(s)
+      - Compute: {{ nodeNetworkInfo.computes | default([]) | length }} node(s)
+      {% if (nodeNetworkInfo.computes | default([]) | length) == 0 %}
+      
+      ** CONVERGED CLUSTER MODE **
+      Ingress traffic (HTTP/HTTPS) will route to control plane nodes
+      {% endif %}
+

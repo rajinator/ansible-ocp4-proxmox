@@ -1,4 +1,7 @@
 ---
+- name: Setup Bastion Host Services
+  import_playbook: 00_bastion_services.yml
+
 - name: Download files
   import_playbook: 01_dloads.yml
 
