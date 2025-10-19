@@ -1,6 +1,6 @@
 ## This will destroy all control plane VMs
 - name: Destroy Control Plane VMs if they exist
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"

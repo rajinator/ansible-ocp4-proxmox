@@ -1,6 +1,6 @@
 ## This will destroy all compute VMs
 - name: Destroy Compute VMs if they exist
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -10,6 +10,9 @@
     node: "{{ proxmox.node }}"
     vmid: "{{ item.id }}"
     state: absent
-  when: cleanupFull | bool
+  when:
+    - cleanupFull | bool
+    - nodeNetworkInfo.computes is defined
+    - nodeNetworkInfo.computes | length > 0
   with_items: 
    - "{{ nodeNetworkInfo.computes }}"

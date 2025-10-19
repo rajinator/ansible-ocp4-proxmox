@@ -17,5 +17,8 @@
 # Create ControlPlane VMs
 - include_tasks: 02_control.yml
 
-# Create Compute VMs
+# Create Compute VMs (only if defined)
 - include_tasks: 03_compute.yml
+  when:
+    - nodeNetworkInfo.computes is defined
+    - nodeNetworkInfo.computes | length > 0

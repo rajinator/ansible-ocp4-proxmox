@@ -1,6 +1,6 @@
 ---
 - name: Stop Control Plane VMs if they exist
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -12,11 +12,15 @@
     state: stopped
     timeout: 150
   when: fullWipe | bool
+  register: controlplane_stop_result
+  failed_when:
+    - controlplane_stop_result is failed
+    - "'does not exist' not in (controlplane_stop_result.msg | default(''))"
   with_items:
    - "{{ nodeNetworkInfo.controlplanes }}"
 
 - name: Destroy Control Plane VMs if they exist
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -27,12 +31,16 @@
     vmid: "{{ item.id }}"
     state: absent
   when: fullWipe | bool
+  register: controlplane_destroy_result
+  failed_when:
+    - controlplane_destroy_result is failed
+    - "'does not exist' not in (controlplane_destroy_result.msg | default(''))"
   with_items:
    - "{{ nodeNetworkInfo.controlplanes }}"
 
 # Create ControlPlane VMs
 - name: Create ControlPlane VMs
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -47,9 +55,6 @@
     # full: no
     net:
       net0: 'virtio={{ item.MAC }},bridge={{ vmNet.ifName }}'
-    cores: "{{ controlPlaneSizing.cores }}"
-    vcpus: 4
-    memory: "{{ controlPlaneSizing.mem }}"
     agent: yes
     args: "-fw_cfg name=opt/com.coreos/config,file={{ files.proxmoxDir }}/ignitions/{{ openshift.cluster.name }}/master.ign"
     serial:
@@ -60,8 +65,21 @@
   with_items:
    - "{{ nodeNetworkInfo.controlplanes }}"
 
+- name: Update Control Plane VM hardware configuration
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    vmid: "{{ item.id }}"
+    node: "{{ proxmox.node }}"
+    cores: "{{ controlPlaneSizing.cores }}"
+    memory: "{{ controlPlaneSizing.mem }}"
+    update: yes
+  with_items:
+    - "{{ nodeNetworkInfo.controlplanes }}"
+
 - name: Create NIC net0 targeting the vm by id
-  community.general.proxmox_nic:
+  community.proxmox.proxmox_nic:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -79,17 +97,27 @@
 #   debug:
 #     var: controlplane_vms_info
 
-- name: resize control-plane nodes disks
-  uri:
-      url: "https://{{ proxmox.api_host }}:8006/api2/json/nodes/{{ proxmox.node }}/qemu/{{ item.id }}/resize"
-      method: PUT
-      headers:
-        Cookie: "PVEAuthCookie={{ auth.json.data.ticket }}"
-        CSRFPreventionToken: "{{ auth.json.data.CSRFPreventionToken }}"
-      body_format: form-urlencoded
-      body:
-        disk: scsi0
-        size: "{{ vm_disk_size }}"
-      validate_certs: no
+- name: Resize control-plane nodes disks
+  community.proxmox.proxmox_disk:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    vmid: "{{ item.id }}"
+    disk: scsi0
+    size: "{{ vm_disk_size }}"
+    state: resized
   with_items:
-   - "{{ nodeNetworkInfo.controlplanes }}"
+    - "{{ nodeNetworkInfo.controlplanes }}"
+
+- name: Start Control Plane VMs after all configuration is complete
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    vmid: "{{ item.id }}"
+    node: "{{ proxmox.node }}"
+    state: started
+    timeout: 60
+  with_items:
+    - "{{ nodeNetworkInfo.controlplanes }}"
+  when: auto_start_vms | default(false) | bool

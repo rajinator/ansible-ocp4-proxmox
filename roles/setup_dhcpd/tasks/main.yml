@@ -14,16 +14,28 @@
 
 - name: Deploy DHCP cluster configuration
   ansible.builtin.template:
-    src: dhcpd-cluster.conf.j2
+    src: ../../templates/dhcpd/dhcpd-cluster.conf.j2
     dest: "{{ dhcp.confDir }}/dhcpd-cluster.conf"
     mode: '0644'
     validate: 'dhcpd -t -cf %s'
   notify: Restart dhcpd
   when: dhcp.confDir is defined
 
+- name: Configure main dhcpd.conf to include cluster config
+  ansible.builtin.copy:
+    content: |
+      # DHCP Server Configuration file
+      # Main configuration includes cluster-specific settings
+      
+      include "{{ dhcp.confDir }}/dhcpd-cluster.conf";
+    dest: /etc/dhcp/dhcpd.conf
+    mode: '0644'
+  notify: Restart dhcpd
+  when: dhcp.confDir is defined
+
 - name: Deploy DHCP cluster configuration (alternative location)
   ansible.builtin.template:
-    src: dhcpd-cluster.conf.j2
+    src: ../../templates/dhcpd/dhcpd-cluster.conf.j2
     dest: /etc/dhcp/dhcpd.conf
     mode: '0644'
     validate: 'dhcpd -t -cf %s'

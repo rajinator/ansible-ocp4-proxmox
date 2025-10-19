@@ -1,0 +1,13 @@
+---
+# Cleanup VMs role - removes OpenShift cluster VMs
+# Use with caution - this will destroy VMs!
+
+- name: Cleanup compute nodes
+  include_tasks: 01_cleanup_computes.yml
+  when:
+    - nodeNetworkInfo.computes is defined
+    - nodeNetworkInfo.computes | length > 0
+
+- name: Cleanup control plane nodes
+  include_tasks: 02_cleanup_control.yml
+

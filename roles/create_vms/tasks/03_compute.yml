@@ -1,6 +1,6 @@
 ---
 - name: Stop Compute VMs if they exist
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -12,11 +12,15 @@
     state: stopped
     timeout: 150
   when: fullWipe | bool
+  register: compute_stop_result
+  failed_when:
+    - compute_stop_result is failed
+    - "'does not exist' not in (compute_stop_result.msg | default(''))"
   with_items:
    - "{{ nodeNetworkInfo.computes }}"
 
 - name: Destroy Compute VMs if they exist
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -27,12 +31,16 @@
     vmid: "{{ item.id }}"
     state: absent
   when: fullWipe | bool
+  register: compute_destroy_result
+  failed_when:
+    - compute_destroy_result is failed
+    - "'does not exist' not in (compute_destroy_result.msg | default(''))"
   with_items:
    - "{{ nodeNetworkInfo.computes }}"
 
 # Create Compute VMs
 - name: Create Compute VMs
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -47,9 +55,6 @@
     # full: no
     net:
       net0: 'virtio={{ item.MAC }},bridge={{ vmNet.ifName }}'
-    cores: "{{ computeSizing.cores }}"
-    vcpus: 4
-    memory: "{{ computeSizing.mem }}"
     agent: yes
     serial:
       serial0: socket
@@ -60,8 +65,21 @@
   with_items:
    - "{{ nodeNetworkInfo.computes }}"
 
+- name: Update Compute VM hardware configuration
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    vmid: "{{ item.id }}"
+    node: "{{ proxmox.node }}"
+    cores: "{{ computeSizing.cores }}"
+    memory: "{{ computeSizing.mem }}"
+    update: yes
+  with_items:
+    - "{{ nodeNetworkInfo.computes }}"
+
 - name: Create NIC net0 targeting the vm by id
-  community.general.proxmox_nic:
+  community.proxmox.proxmox_nic:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -79,17 +97,27 @@
 #   debug:
 #     var: compute_vms_info
 
-- name: resize compute nodes disks
-  uri:
-      url: "https://{{ proxmox.api_host }}:8006/api2/json/nodes/{{ proxmox.node }}/qemu/{{ item.id }}/resize"
-      method: PUT
-      headers:
-        Cookie: "PVEAuthCookie={{ auth.json.data.ticket }}"
-        CSRFPreventionToken: "{{ auth.json.data.CSRFPreventionToken }}"
-      body_format: form-urlencoded
-      body:
-        disk: scsi0
-        size: "{{ vm_disk_size }}"
-      validate_certs: no
+- name: Resize compute nodes disks
+  community.proxmox.proxmox_disk:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    vmid: "{{ item.id }}"
+    disk: scsi0
+    size: "{{ vm_disk_size }}"
+    state: resized
   with_items:
-   - "{{ nodeNetworkInfo.computes }}"
+    - "{{ nodeNetworkInfo.computes }}"
+
+- name: Start Compute VMs after all configuration is complete
+  community.proxmox.proxmox_kvm:
+    api_host: "{{ proxmox.api_host }}"
+    api_user: "{{ proxmox.api_user }}"
+    api_password: "{{ proxmox_secrets.api_password }}"
+    vmid: "{{ item.id }}"
+    node: "{{ proxmox.node }}"
+    state: started
+    timeout: 60
+  with_items:
+    - "{{ nodeNetworkInfo.computes }}"
+  when: auto_start_vms | default(false) | bool
