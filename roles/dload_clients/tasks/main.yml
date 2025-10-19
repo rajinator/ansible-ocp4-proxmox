@@ -1,17 +1,30 @@
 ---
 # this role creates base files dir, downloads and sets up the OCP or OKD clients on the bastion and localhost if localhost is linux
+
+- name: Get remote user home directory
+  ansible.builtin.shell: "echo $HOME"
+  register: remote_home
+  changed_when: false
+  become: false
+
+- name: Set absolute path for bastion directory
+  ansible.builtin.set_fact:
+    bastion_dir_absolute: "{{ remote_home.stdout }}/ocp-ansible-proxmox"
+
 - name: make working dir
-  file:
-    path: "{{ files.bastionDir }}"
+  ansible.builtin.file:
+    path: "{{ bastion_dir_absolute }}"
     state: directory
-    mode: '744'
+    mode: '0755'
+  become: false
 
 
 - name: make subdirs
-  file:
-    path: "{{ files.bastionDir }}/{{ item }}"
+  ansible.builtin.file:
+    path: "{{ bastion_dir_absolute }}/{{ item }}"
     state: directory
-    mode: '744'
+    mode: '0755'
+  become: false
   loop:
   - clients
   - dependencies
@@ -23,7 +36,7 @@
     - name: Fetch from URL
       get_url:
         url: "{{ fullUrls.client }}"
-        dest: "{{ files.bastionDir }}/clients/{{ dep.client }}"
+        dest: "{{ bastion_dir_absolute }}/clients/{{ dep.client }}"
         checksum: "sha256:{{ fullUrls.sha256url }}"
       register: client_download
       until: client_download is succeeded
@@ -32,20 +45,23 @@
 
     - name: Extract clients
       unarchive:
-        src: "{{ files.bastionDir }}/clients/{{ dep.client }}"
-        dest: "{{ files.bastionDir }}/clients/"
-        creates: "{{ files.bastionDir }}/clients/oc"
+        src: "{{ bastion_dir_absolute }}/clients/{{ dep.client }}"
+        dest: "{{ bastion_dir_absolute }}/clients/"
+        creates: "{{ bastion_dir_absolute }}/clients/oc"
         remote_src: yes
         list_files: yes
 
 
     - name: Copy to usr-local-bin
-      copy:
-        src: "{{ files.bastionDir }}/clients/{{ item }}"
+      ansible.builtin.copy:
+        src: "{{ bastion_dir_absolute }}/clients/{{ item }}"
         dest: "/usr/local/bin/{{ item }}"
         remote_src: yes
-        mode: 0777
+        mode: '0755'
+        owner: root
+        group: root
       become: yes
+      become_user: root
       loop:
       - oc
       - kubectl
@@ -56,7 +72,7 @@
     - name: Fetch from URL
       get_url:
         url: "{{ fullUrls.installer }}"
-        dest: "{{ files.bastionDir }}/clients/{{ dep.installer }}"
+        dest: "{{ bastion_dir_absolute }}/clients/{{ dep.installer }}"
         checksum: "sha256:{{ fullUrls.sha256url }}"
       register: installer_download
       until: installer_download is succeeded
@@ -64,19 +80,22 @@
     
     - name: Extract installer
       unarchive:
-        src: "{{ files.bastionDir }}/clients/{{ dep.installer }}"
-        dest: "{{ files.bastionDir }}/clients/"
-        creates: "{{ files.bastionDir }}/clients/openshift-installer"        
+        src: "{{ bastion_dir_absolute }}/clients/{{ dep.installer }}"
+        dest: "{{ bastion_dir_absolute }}/clients/"
+        creates: "{{ bastion_dir_absolute }}/clients/openshift-installer"        
         remote_src: yes
         list_files: yes
 
     - name: Copy to usr-local-bin
-      copy:
-        src: "{{ files.bastionDir }}/clients/{{ item }}"
+      ansible.builtin.copy:
+        src: "{{ bastion_dir_absolute }}/clients/{{ item }}"
         dest: "/usr/local/bin/{{ item }}"
         remote_src: yes
-        mode: 0777 
+        mode: '0755'
+        owner: root
+        group: root
       become: yes
+      become_user: root
       loop:
       - openshift-install
 

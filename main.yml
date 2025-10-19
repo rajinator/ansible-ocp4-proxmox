@@ -1,15 +1,35 @@
 ---
 - name: Setup Bastion Host Services
   import_playbook: 00_bastion_services.yml
+  tags:
+    - bastion
+    - setup
+    - services
 
 - name: Download files
   import_playbook: 01_dloads.yml
+  tags:
+    - download
+    - dloads
+    - prereq
 
 - name: Generate PreInstall Artifacts
   import_playbook: 02_ocp_preinstall.yml
+  tags:
+    - preinstall
+    - ignition
+    - config
 
 - name: Create VM template
   import_playbook: 03_vm_template.yml
+  tags:
+    - template
+    - vm-template
+    - prereq
 
 - name: Create VMs
   import_playbook: 04_create_vms.yml
+  tags:
+    - create-vms
+    - vms
+    - provision

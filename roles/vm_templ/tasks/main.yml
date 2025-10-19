@@ -14,7 +14,7 @@
 #   ignore_errors: true
 
 - name: Destroy Template if Exists
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -28,7 +28,7 @@
 
 
 - name: Create Template VM
-  community.general.proxmox_kvm:
+  community.proxmox.proxmox_kvm:
     api_host: "{{ proxmox.api_host }}"
     api_user: "{{ proxmox.api_user }}"
     #api_token_id: "{{ proxmox_secrets.api_token_id }}"
@@ -40,8 +40,8 @@
     net:
       net0: 'virtio,bridge={{ vmNet.ifName }}'
     cores: "{{ vmTemplate.cores }}"
-    vcpus: 4
     memory: "{{ vmTemplate.mem }}"
+    cpu: 'host'
     agent: "{{ vmTemplate.agent | default(no) }}"
     serial:
       serial0: socket

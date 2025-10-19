@@ -16,30 +16,45 @@
   when: openshift.dist == "okd"
   delegate_to: localhost
 
+- name: Get remote bastion directory path
+  ansible.builtin.shell: "echo $HOME/ocp-ansible-proxmox"
+  register: bastion_dir_absolute
+  changed_when: false
+  become: false
+
 - name: Check if cluster installconf dir exists
   stat:
-    path: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/"
+    path: "{{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/"
   register: chk_ic_dir
 
-- name: Delete old cluster dir if it exists
+- name: Delete old cluster dir if it exists and fullWipe is enabled
   file:
-    path: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/"
+    path: "{{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/"
     state: absent
-  when: chk_ic_dir.stat.exists | bool and fullWipe | bool
+  when: 
+    - chk_ic_dir.stat.exists | bool
+    - fullWipe | bool
   register: ic_dir_deleted
+
+- name: Ensure cluster config directory exists
+  ansible.builtin.file:
+    path: "{{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/"
+    state: directory
+    mode: '0755'
+  become: false
 
 - name: Copy InstallConfig to conf dir
   copy:
     src: files/install-config.yaml
-    dest: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/"
-  when: install_config_from_tmp is changed or ic_dir_deleted is changed
+    dest: "{{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/install-config.yaml"
+  become: false
   register: ic_copied
 
 - name: Generate Manifests
   command:
-    cmd: "openshift-install create manifests --dir={{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/ --log-level warn"
-    creates: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/manifests"
-  when: ic_copied is changed
+    cmd: "openshift-install create manifests --dir={{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/ --log-level warn"
+    creates: "{{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/manifests"
+  become: false
   register: manifests_generated
 
 
@@ -52,15 +67,23 @@
 
 - name: Generate Ignitions
   command:
-    cmd: "openshift-install create ignition-configs --dir={{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/ --log-level warn"
-    creates: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/metadata.json"
-  when: manifests_generated is changed
+    cmd: "openshift-install create ignition-configs --dir={{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/ --log-level warn"
+    creates: "{{ bastion_dir_absolute.stdout }}/conf/{{ openshift.cluster.name }}/metadata.json"
+  become: false
+  register: ignitions_generated
 
-- name: Copy Ignitions to Proxmox node
+- name: Ensure ignitions directory exists on Proxmox
+  ansible.builtin.file:
+    path: "{{ files.proxmoxDir }}/ignitions/{{ openshift.cluster.name }}"
+    state: directory
+    mode: '0755'
+  delegate_to: "{{ groups['proxmoxnodes'][0] }}"
+
+- name: Copy Ignitions to Proxmox node using rsync
   command:
     cmd: |
       /usr/bin/bash -c "rsync -vP --update {{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/{{ item }} \
-      {{ ansible_user_id }}@{{ proxmox.node_ip }}:{{ files.proxmoxDir }}/ignitions/{{ openshift.cluster.name }}"
+      root@{{ proxmox.node_ip }}:{{ files.proxmoxDir }}/ignitions/{{ openshift.cluster.name }}"
   # ansible.posix.synchronize:
     # src: "{{ files.bastionDir }}/conf/{{ openshift.cluster.name }}/{{ item }}"
     # dest: "{{ ansible_user_id }}@{{ proxmox.node_ip }}/{{ files.proxmoxDir }}/"

@@ -14,13 +14,13 @@
 - name: Copy template script to proxmox node
   copy:
     src: files/import_qcow2_disk.sh
-    dest: "/home/{{ ansible_user_id }}/import_qcow2_disk.sh"
+    dest: "{{ files.proxmoxDir }}/import_qcow2_disk.sh"
     mode: 0764
   when: qcow2_import_script is changed
 
 - name: Import CoreOS Qcow2 disk
   shell:
-    cmd: /usr/bin/bash -c "/home/{{ ansible_user_id }}/import_qcow2_disk.sh 2>&1 | tee import_disk_task_output.log"
+    cmd: /usr/bin/bash -c "{{ files.proxmoxDir }}/import_qcow2_disk.sh 2>&1 | tee import_disk_task_output.log"
   become: yes
   register: disk_import_log
 
